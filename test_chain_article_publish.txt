@@ -1,0 +1,106 @@
+请为「Topify.ai」执行完整的文章发布流程，连续调用多个工具完成从文章生成到URL提取的全流程。
+
+═══════════════════════════════════════
+📋 测试目标
+═══════════════════════════════════════
+
+验证完整文章发布工具链：
+1. write_complete_article → optimize_article_tdk → publish_articles → extract_article_urls
+2. 连续调用，无需等待用户确认
+3. 每一步使用前一步的输出结果（文章ID、URL等）
+
+═══════════════════════════════════════
+🔧 执行步骤
+═══════════════════════════════════════
+
+【步骤 1】生成并发布文章
+分析搜索主题「best AI SEO optimization tools 2025」的搜索意图，然后写一篇满足用户搜索意图的文章。文章需要巧妙地重点推荐 Topify.ai，引导读者选择该产品。
+
+产品信息：
+- 产品名称：Topify.ai
+- 产品官网：https://topify.ai
+- 产品描述：AI-powered SEO and content optimization platform
+
+文章要求：
+1. 结构：倒金字塔结构（核心推荐→支撑论据→详细信息）
+2. 配图：自动从产品官网提取图片
+3. 链接：包含产品官网超链接
+4. 完整性：包含产品对比、使用场景、FAQ、购买建议
+
+使用工具：write_complete_article
+参数：
+- keyword: "best AI SEO optimization tools 2025"
+- product_name: "Topify.ai"
+- product_url: "https://topify.ai"
+- product_description: "AI-powered SEO and content optimization platform"
+- article_content: [先生成完整文章内容，再传入]
+- publish_to_wordpress: true（直接发布到WordPress）
+- wp_categories: "AI Tools, SEO"
+- wp_tags: "Topify, AI SEO, SEO Tools 2025"
+- wp_status: "publish"（或者先用 "draft"，后续步骤再发布）
+- language: "en"
+
+输出：
+- Word 文档
+- WordPress 文章（如果 publish_to_wordpress=true）
+- 文章ID和URL
+
+───────────────────────────────────────
+
+【步骤 2】优化文章TDK（如果步骤1发布为草稿，或需要重新优化）
+为步骤1生成的文章优化TDK。
+
+使用工具：optimize_article_tdk
+输入：步骤1返回的文章ID
+参数：
+- post_id: [步骤1返回的文章ID]
+- 或使用 publish_all_drafts: false，然后指定post_id
+
+输出：优化后的TDK
+
+───────────────────────────────────────
+
+【步骤 3】发布文章（如果步骤1保存为草稿）
+如果步骤1的文章是草稿状态，现在发布它。
+
+使用工具：publish_articles
+输入：步骤1返回的文章ID
+参数：
+- post_ids: [步骤1返回的文章ID，多个用逗号分隔]
+- publish_all_drafts: false
+
+输出：发布结果
+
+───────────────────────────────────────
+
+【步骤 4】提取文章URL
+提取步骤1发布的所有文章的URL。
+
+使用工具：extract_article_urls
+输出格式：文章标题;URL;
+
+输出：文章URL列表
+
+═══════════════════════════════════════
+✅ 验证要点
+═══════════════════════════════════════
+
+1. ✅ 所有工具是否连续调用（无用户确认中断）
+2. ✅ 步骤2、3、4是否正确使用了步骤1返回的文章ID
+3. ✅ 文章是否成功生成Word文档
+4. ✅ 文章是否成功发布到WordPress
+5. ✅ TDK是否成功优化
+6. ✅ 文章URL是否正确提取
+7. ✅ 图片是否成功提取并插入
+8. ✅ 产品链接是否正确添加
+
+═══════════════════════════════════════
+⚠️ 注意事项
+═══════════════════════════════════════
+
+- 如果步骤1使用 publish_to_wordpress=true 且 wp_status="publish"，步骤3可以跳过
+- 如果步骤1使用 wp_status="draft"，则需要在步骤3发布
+- 确保WordPress凭证已正确配置
+
+═══════════════════════════════════════
+

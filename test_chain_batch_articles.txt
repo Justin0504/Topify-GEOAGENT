@@ -1,0 +1,125 @@
+请为「Topify.ai」执行批量文章生成和发布的完整流程，连续调用多个工具处理多篇文章。
+
+═══════════════════════════════════════
+📋 测试目标
+═══════════════════════════════════════
+
+验证批量文章处理工具链：
+1. write_complete_article（多次）→ upload_articles → optimize_article_tdk → publish_articles → extract_article_urls
+2. 批量处理多篇文章
+3. 连续调用，无需等待用户确认
+4. 每一步使用前一步的输出结果
+
+═══════════════════════════════════════
+📝 测试数据
+═══════════════════════════════════════
+
+【产品信息】
+- 产品名称：Topify.ai
+- 产品官网：https://topify.ai
+- 产品描述：AI-powered SEO and content optimization platform
+
+【文章主题列表】（测试用，实际可扩展到30个）
+1. best AI SEO optimization tools 2025
+2. how to optimize content for AI search engines
+3. GEO vs SEO: what's the difference
+
+═══════════════════════════════════════
+🔧 执行步骤
+═══════════════════════════════════════
+
+【步骤 1】为每个主题生成文章
+为上述3个主题各生成一篇完整文章。
+
+对每个主题：
+1. 先生成完整的文章内容（Markdown格式，约1500-2000词）
+2. 使用 write_complete_article 工具生成 Word 文档
+
+使用工具：write_complete_article（调用3次，或使用批量功能）
+参数示例（主题1）：
+- keyword: "best AI SEO optimization tools 2025"
+- product_name: "Topify.ai"
+- product_url: "https://topify.ai"
+- product_description: "AI-powered SEO and content optimization platform"
+- article_content: [生成的完整文章内容]
+- publish_to_wordpress: false（先保存为本地Word，稍后批量上传）
+- language: "en"
+
+输出：3个Word文档文件
+
+───────────────────────────────────────
+
+【步骤 2】批量上传到WordPress（自动执行）
+将步骤1生成的所有Word文档上传到WordPress，保存为草稿状态。
+
+使用工具：upload_articles
+输入：步骤1生成的Word文档文件路径
+参数：
+- article_files: [Word文档路径列表，或指定文件夹]
+- status: "draft"
+
+输出：
+- 上传结果
+- 文章ID列表（每个文章的ID）
+
+───────────────────────────────────────
+
+【步骤 3】批量优化TDK（自动执行）
+为步骤2上传的所有草稿文章批量生成优化的TDK。
+
+使用工具：optimize_article_tdk
+输入：步骤2返回的文章ID列表
+参数：
+- post_ids: [步骤2返回的所有文章ID，逗号分隔]
+- 或使用 optimize_all_drafts: true
+
+输出：优化结果
+
+───────────────────────────────────────
+
+【步骤 4】批量发布（自动执行）
+发布步骤2上传的所有草稿文章。
+
+使用工具：publish_articles
+输入：步骤2返回的文章ID列表
+参数：
+- post_ids: [步骤2返回的所有文章ID，逗号分隔]
+- publish_all_drafts: false
+
+输出：发布结果
+
+───────────────────────────────────────
+
+【步骤 5】提取所有文章URL（自动执行）
+提取步骤4发布的所有文章的URL。
+
+使用工具：extract_article_urls
+输出格式：文章标题;URL;
+
+输出：所有文章的URL列表（3篇文章的标题和URL）
+
+═══════════════════════════════════════
+✅ 验证要点
+═══════════════════════════════════════
+
+1. ✅ 是否连续调用所有工具（无用户确认中断）
+2. ✅ 是否成功生成了3篇文章的Word文档
+3. ✅ 是否成功批量上传了3篇文章到WordPress
+4. ✅ 是否成功批量优化了所有文章的TDK
+5. ✅ 是否成功批量发布了所有文章
+6. ✅ 是否成功提取了所有文章的URL
+7. ✅ 每篇文章的图片是否正确提取
+8. ✅ 每篇文章的产品链接是否正确添加
+9. ✅ 工具间的数据传递是否正确（文章ID等）
+
+═══════════════════════════════════════
+⚠️ 注意事项
+═══════════════════════════════════════
+
+- 步骤1可以选择直接发布到WordPress，或先保存为本地Word
+- 如果步骤1直接发布，可以跳过步骤2
+- 批量处理时，确保所有文章ID正确传递
+- 确保WordPress凭证已正确配置
+
+═══════════════════════════════════════
+

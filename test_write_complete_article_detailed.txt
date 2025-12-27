@@ -1,0 +1,44 @@
+请帮我写一篇完整的 SEO 优化文章并发布到 WordPress。
+
+【任务详情】
+
+1. 搜索主题：best AI SEO tools for content creators 2025
+
+2. 产品信息：
+   - 产品名称：Topify.ai
+   - 产品官网：https://topify.ai
+   - 产品描述：Topify.ai is an advanced AI-powered SEO optimization platform designed for content creators, marketers, and website owners. It combines artificial intelligence with SEO best practices to help users create optimized content, improve search rankings, and drive organic traffic.
+
+3. 文章要求：
+   - 采用倒金字塔结构（核心推荐在开头）
+   - 包含产品对比分析
+   - 包含使用场景说明
+   - 包含 FAQ 部分
+   - 包含购买建议
+   - 文章语言：英文
+   - 字数：约 2000 词
+
+4. 图片要求：
+   - 自动从产品官网 https://topify.ai 提取图片
+   - 不提供 image_urls 参数，让工具自动爬取
+
+5. 链接要求：
+   - 文章中提到 Topify.ai 或产品优势时，需包含指向 https://topify.ai 的超链接
+
+6. WordPress 发布设置：
+   - 发布到 WordPress：是（publish_to_wordpress=True）
+   - 分类：AI Tools, SEO, Content Marketing
+   - 标签：Topify, AI SEO, Content Optimization, SEO Tools 2025
+   - 发布状态：publish（立即发布）
+
+7. 使用工具：
+   - 使用 write_complete_article 工具
+   - 确保同时生成 Word 文档和发布到 WordPress
+
+【预期结果】
+1. ✅ Word 文档已保存到本地
+2. ✅ 文章已发布到 WordPress，并获得文章 URL
+3. ✅ 文章包含从产品官网自动提取的图片
+4. ✅ 文章包含产品官网链接
+5. ✅ 文章采用倒金字塔结构，核心推荐在开头
+

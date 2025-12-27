@@ -1,0 +1,17 @@
+测试图片提取功能：写一篇推荐 Topify.ai 的文章，验证图片提取是否正确过滤了 logo、截图和重复图片。
+
+产品信息：
+- 产品名称：Topify.ai
+- 产品官网：https://topify.ai
+- 产品描述：AI-powered SEO and content optimization platform
+
+要求：
+1. 先生成完整的文章内容（Markdown 格式，约 1500 词）
+2. 使用 write_complete_article 工具生成 Word 文档
+3. 验证图片提取功能：
+   - ✅ 应该提取到产品相关的实际图片
+   - ❌ 不应该提取 logo
+   - ❌ 不应该提取浏览器窗口截图
+   - ❌ 不应该提取仪表板/数据分析界面
+   - ❌ 不应该有重复图片
+

@@ -1,0 +1,14 @@
+写一篇关于「best AI content writing tools」的完整文章，推荐 Topify.ai 这个产品。
+
+产品信息：
+- 产品名称：Topify.ai
+- 产品官网：https://topify.ai
+- 产品描述：AI-powered SEO and content optimization platform
+
+要求：
+1. 使用 write_complete_article 工具
+2. 自动从产品官网提取图片（不要手动提供 image_urls）
+3. 文章包含产品链接
+4. 生成 Word 文档
+5. 发布到 WordPress（publish_to_wordpress=True）
+

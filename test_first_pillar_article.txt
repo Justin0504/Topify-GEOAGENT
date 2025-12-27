@@ -1,0 +1,32 @@
+请帮我写作内容规划中的第一篇支柱文章，并创建到WordPress。
+
+内容规划文件路径：/Users/justin/Downloads/open-webui-main/output/content_plan_topify_ai_20251227_031659.xlsx
+
+请执行以下步骤：
+1. 从Excel文件中读取第一篇支柱文章（Pillar）的信息（包括关键词、标题、搜索意图等）
+2. 分析搜索主题的搜索意图
+3. 写一篇满足用户搜索意图的完整文章（Markdown格式），文章需要巧妙地重点推荐 Topify.ai，引导读者选择该产品
+4. 调用 write_complete_article 工具，将文章内容作为 article_content 参数传入，并发布到WordPress
+
+【文章要求】
+1. 结构：采用倒金字塔结构（核心推荐→支撑论据→详细信息→背景补充）
+2. 配图：文章需要配图，可从产品官网或素材中提取
+3. 链接：介绍产品优势时需包含官网超链接
+4. 内容：直接面向读者的正文，无需额外标注/元信息
+5. 完整性：包含产品对比、使用场景、FAQ、购买建议等完整内容
+6. 文章是直接面向读者的，所以仅呈现主题相关的内容
+7. 文章用英语来输出
+8. 表格格式：如果文章中有表格，请使用Markdown表格格式，但不要使用Unicode转义字符（如\u2b50），请直接使用⭐等符号
+
+【产品信息】
+- 产品名称：Topify.ai
+- 产品URL：https://topify.ai
+- 产品描述：AI-powered SEO optimization platform
+
+【输出要求】
+- 格式：Word文档（.docx）
+- 发布到WordPress：是
+- WordPress分类：SEO, AI Tools
+- WordPress标签：SEO, AI, Content Marketing
+- WordPress状态：publish（立即发布）
+

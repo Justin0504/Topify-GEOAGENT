@@ -1,0 +1,52 @@
+/* 修复工具结果显示的换行和样式 */
+
+/* 工具结果容器 */
+details[type="tool_calls"] pre,
+details[type="tool_calls"] code,
+[id*="tool-calls"] pre,
+[id*="tool-calls"] code {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  font-size: 11px !important;
+  line-height: 1.6 !important;
+}
+
+/* JSON 代码块换行 */
+details[type="tool_calls"] pre code {
+  white-space: pre-wrap !important;
+  white-space: -moz-pre-wrap !important;
+  white-space: -pre-wrap !important;
+  white-space: -o-pre-wrap !important;
+}
+
+/* 工具结果文本区域 */
+details[type="tool_calls"] .prose,
+[id*="tool-calls-result"] .prose {
+  white-space: pre-wrap !important;
+  max-height: 400px !important;
+  overflow-y: auto !important;
+}
+
+/* 处理 \n 转义符 */
+details[type="tool_calls"] [class*="markdown"] {
+  white-space: pre-wrap !important;
+}
+
+/* 确保文本换行 */
+details[type="tool_calls"] p,
+details[type="tool_calls"] div {
+  white-space: pre-wrap !important;
+}
+
+/* 缩小字体 */
+details[type="tool_calls"] {
+  font-size: 12px !important;
+}
+
+/* 改善可读性 */
+details[type="tool_calls"] .bg-gray-50,
+details[type="tool_calls"] .bg-gray-800 {
+  padding: 12px !important;
+  border-radius: 6px !important;
+}
+

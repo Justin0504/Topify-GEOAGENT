@@ -1,0 +1,31 @@
+[
+  {
+    "id": "calculator",
+    "name": "Calculator",
+    "meta": {
+      "description": "简单的数学计算器工具",
+      "manifest": {
+        "required_open_webui_version": "0.6.0"
+      }
+    },
+    "content": "---\nrequired_open_webui_version: 0.6.0\ndescription: 数学计算器\n---\n\nclass Tools:\n    def calculate(self, expression: str):\n        \"\"\"计算数学表达式\n        \n        Args:\n            expression: 数学表达式，如 \"2+2\", \"10*5\", \"sqrt(16)\"\n            \n        Returns:\n            计算结果字符串\n        \"\"\"\n        import math\n        try:\n            # 安全的数学表达式计算\n            allowed_names = {\n                k: v for k, v in math.__dict__.items() if not k.startswith(\"__\")\n            }\n            result = eval(expression, {\"__builtins__\": {}}, allowed_names)\n            return f\"计算结果: {result}\"\n        except Exception as e:\n            return f\"计算错误: {str(e)}\"",
+    "access_control": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "time_converter",
+    "name": "Time Converter",
+    "meta": {
+      "description": "时间转换工具，支持时区转换",
+      "manifest": {
+        "required_open_webui_version": "0.6.0"
+      }
+    },
+    "content": "---\nrequired_open_webui_version: 0.6.0\ndescription: 时间转换工具\nrequirements: pytz\n---\n\nclass Tools:\n    def convert_timezone(self, time_str: str, from_tz: str, to_tz: str):\n        \"\"\"转换时区\n        \n        Args:\n            time_str: 时间字符串，格式 \"YYYY-MM-DD HH:MM:SS\"\n            from_tz: 源时区，如 \"UTC\", \"Asia/Shanghai\"\n            to_tz: 目标时区，如 \"America/New_York\"\n            \n        Returns:\n            转换后的时间字符串\n        \"\"\"\n        from datetime import datetime\n        import pytz\n        \n        try:\n            from_timezone = pytz.timezone(from_tz)\n            to_timezone = pytz.timezone(to_tz)\n            \n            dt = datetime.strptime(time_str, \"%Y-%m-%d %H:%M:%S\")\n            dt = from_timezone.localize(dt)\n            dt = dt.astimezone(to_timezone)\n            \n            return f\"{time_str} ({from_tz}) = {dt.strftime('%Y-%m-%d %H:%M:%S')} ({to_tz})\"\n        except Exception as e:\n            return f\"转换错误: {str(e)}\"",
+    "access_control": {
+      "enabled": false
+    }
+  }
+]
+

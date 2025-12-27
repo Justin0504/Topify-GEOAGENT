@@ -1,0 +1,47 @@
+[
+  {
+    "id": "gpt-4o",
+    "name": "GPT-4o",
+    "meta": {
+      "description": "OpenAI GPT-4o 模型，支持多模态输入",
+      "author": "OpenAI",
+      "tags": ["openai", "multimodal"]
+    },
+    "params": {
+      "temperature": 0.7,
+      "max_tokens": 4096,
+      "top_p": 1.0,
+      "frequency_penalty": 0.0,
+      "presence_penalty": 0.0
+    },
+    "is_active": true
+  },
+  {
+    "id": "gpt-4-turbo",
+    "name": "GPT-4 Turbo",
+    "meta": {
+      "description": "OpenAI GPT-4 Turbo 模型",
+      "author": "OpenAI"
+    },
+    "params": {
+      "temperature": 0.7,
+      "max_tokens": 4096
+    },
+    "is_active": true
+  },
+  {
+    "id": "claude-3-5-sonnet",
+    "name": "Claude 3.5 Sonnet",
+    "meta": {
+      "description": "Anthropic Claude 3.5 Sonnet 模型",
+      "author": "Anthropic",
+      "tags": ["anthropic", "claude"]
+    },
+    "params": {
+      "temperature": 0.7,
+      "max_tokens": 8192
+    },
+    "is_active": true
+  }
+]
+
