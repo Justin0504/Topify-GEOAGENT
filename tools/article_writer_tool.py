@@ -4,7 +4,7 @@ description: 【单篇文章生成】根据搜索意图写作GEO优化文章 | �
 author: GEO Agent
 version: 2.0.0
 required_open_webui_version: 0.6.0
-requirements: python-docx, requests, beautifulsoup4
+requirements: python-docx, requests, beautifulsoup4, openai
 """
 
 import os
@@ -48,7 +48,7 @@ class Tools:
        使用流程:
         1. LLM先根据搜索关键词、产品信息生成完整的文章内容（Markdown格式）
         2. 然后调用此工具，传入生成的 article_content
-        3. 工具会自动生成SEO友好的AI图片URL、添加链接、生成Word文档、可选发布到WordPress
+        3. 工具会自动使用DALL-E生成AI图片、添加链接、生成Word文档、可选发布到WordPress
        示例: 
         - "分析搜索主题「best AI SEO tools」的搜索意图，然后写一篇满足用户搜索意图的文章，推荐 Topify.ai" 
           → LLM生成内容 → 调用工具（仅生成Word）
@@ -86,6 +86,10 @@ class Tools:
         WP_API_BASE: str = Field(
             default="https://public-api.wordpress.com/rest/v1.1",
             description="WordPress.com API 基础 URL"
+        )
+        OPENAI_API_KEY: str = Field(
+            default="",
+            description="【可选】OpenAI API Key（用于AI图片生成）"
         )
 
     def __init__(self):
@@ -810,30 +814,102 @@ Based on the keyword "{keyword}", the search intent appears to be:
             pass
         return None
     
-    def _aw_generate_seo_image_url(self, keyword: str, image_index: int = 1, base_domain: str = None) -> str:
-        """生成SEO友好的AI生成图片URL"""
-        # 清理关键词，生成URL友好的slug
-        slug = keyword.lower().strip()
-        # 替换空格为连字符
-        slug = re.sub(r'\s+', '-', slug)
-        # 移除特殊字符，只保留字母、数字、连字符
-        slug = re.sub(r'[^a-z0-9\-]', '', slug)
-        # 移除多余的连字符
-        slug = re.sub(r'-+', '-', slug)
-        slug = slug.strip('-')
-        # 限制长度
-        slug = slug[:50]
+    def _aw_generate_image_with_dalle(self, keyword: str, product_description: str = "", image_index: int = 1, section_topic: str = "") -> Optional[str]:
+        """使用OpenAI DALL-E生成图片并保存到本地"""
+        try:
+            # 检查是否有API Key
+            api_key = self.valves.OPENAI_API_KEY.strip()
+            if not api_key:
+                return None
+            
+            # 构建图片生成提示词
+            # 如果有section_topic，使用它来生成更相关的图片
+            if section_topic:
+                if product_description:
+                    prompt = f"High-quality, professional image illustrating: {section_topic}. Related to {keyword} and {product_description}. Style: modern, clean, suitable for article illustration. No text or watermark."
+                else:
+                    prompt = f"High-quality, professional image illustrating: {section_topic}. Related to {keyword}. Style: modern, clean, suitable for article illustration. No text or watermark."
+            else:
+                if product_description:
+                    prompt = f"High-quality, professional image related to {keyword}. {product_description}. Style: modern, clean, suitable for article illustration. No text or watermark."
+                else:
+                    prompt = f"High-quality, professional image related to {keyword}. Style: modern, clean, suitable for article illustration. No text or watermark."
+            
+            # 调用OpenAI DALL-E API
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            
+            response = client.images.generate(
+                model="dall-e-3",
+                prompt=prompt,
+                size="1024x1024",
+                quality="hd",  # 使用最高质量
+                n=1,
+            )
+            
+            # 获取图片URL
+            image_url = response.data[0].url
+            
+            # 下载图片
+            img_response = requests.get(image_url, timeout=30)
+            if img_response.status_code == 200:
+                # 确保输出目录存在
+                output_dir = self._aw_ensure_output_dir()
+                images_dir = os.path.join(output_dir, "images")
+                os.makedirs(images_dir, exist_ok=True)
+                
+                # 生成SEO友好的文件名
+                slug = keyword.lower().strip()
+                slug = re.sub(r'\s+', '-', slug)
+                slug = re.sub(r'[^a-z0-9\-]', '', slug)
+                slug = re.sub(r'-+', '-', slug)
+                slug = slug.strip('-')[:50]
+                
+                image_filename = f"{slug}-ai-generated-{image_index}.png"
+                image_path = os.path.join(images_dir, image_filename)
+                
+                # 保存图片
+                with open(image_path, 'wb') as f:
+                    f.write(img_response.content)
+                
+                # 返回本地文件路径（相对于输出目录）
+                return f"images/{image_filename}"
+            
+        except Exception as e:
+            # 如果生成失败，返回None，会在后续使用占位符URL
+            print(f"[Image Generation Error] {str(e)}")
+            return None
         
-        # 生成图片文件名（SEO友好）
+        return None
+    
+    def _aw_generate_seo_image_url(self, keyword: str, image_index: int = 1, base_domain: str = None, product_description: str = "", section_topic: str = "") -> str:
+        """生成SEO友好的AI生成图片URL（使用DALL-E生成真实图片）"""
+        # 尝试使用DALL-E生成图片
+        local_image_path = self._aw_generate_image_with_dalle(keyword, product_description, image_index, section_topic)
+        
+        if local_image_path:
+            # 如果成功生成图片，返回本地路径（后续可以转换为URL）
+            # 如果有base_domain，构建完整的URL
+            if base_domain:
+                domain = base_domain.replace('https://', '').replace('http://', '').split('/')[0]
+                # 这里返回本地路径，实际使用时需要根据部署情况调整URL
+                return f"/images/{os.path.basename(local_image_path)}"
+            else:
+                return f"/images/{os.path.basename(local_image_path)}"
+        
+        # 如果DALL-E生成失败，使用占位符URL（保持向后兼容）
+        slug = keyword.lower().strip()
+        slug = re.sub(r'\s+', '-', slug)
+        slug = re.sub(r'[^a-z0-9\-]', '', slug)
+        slug = re.sub(r'-+', '-', slug)
+        slug = slug.strip('-')[:50]
+        
         image_filename = f"{slug}-ai-generated-{image_index}.jpg"
         
-        # 如果有base_domain，使用它；否则使用占位符URL
         if base_domain:
-            # 从URL中提取域名
             domain = base_domain.replace('https://', '').replace('http://', '').split('/')[0]
             return f"https://{domain}/images/{image_filename}"
         else:
-            # 使用占位符URL格式（实际使用时需要替换为真实的图片服务URL）
             return f"https://images.example.com/{image_filename}"
     
     def _aw_format_cell_text(self, text: str, product_name: str, product_url: str) -> str:
@@ -973,7 +1049,11 @@ Based on the keyword "{keyword}", the search intent appears to be:
                         in_ordered_list = True
                     item_text = decode_unicode_escapes(ordered_list_match.group(2))
                     # 处理列表项中的格式和链接
-                    item_text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', item_text)
+                    # 先处理成对的 **text**，使用非贪婪匹配
+                    item_text = re.sub(r'\*\*([^*]+?)\*\*', r'<strong>\1</strong>', item_text)
+                    # 清理所有剩余的 ** 和单个 *（必须在替换后执行，确保未匹配的符号被移除）
+                    item_text = item_text.replace('**', '')
+                    item_text = item_text.replace('*', '')
                     item_text = re.sub(r'\[([^\]]+)\]\(([^\)]+)\)', r'<a href="\2">\1</a>', item_text)
                     if product_name in item_text:
                         item_text = item_text.replace(product_name, f'<a href="{product_url}">{product_name}</a>')
@@ -990,7 +1070,11 @@ Based on the keyword "{keyword}", the search intent appears to be:
                         in_list = True
                     item_text = decode_unicode_escapes(line[2:])
                     # 处理列表项中的格式和链接
-                    item_text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', item_text)
+                    # 先处理成对的 **text**，使用非贪婪匹配
+                    item_text = re.sub(r'\*\*([^*]+?)\*\*', r'<strong>\1</strong>', item_text)
+                    # 清理所有剩余的 ** 和单个 *（必须在替换后执行）
+                    item_text = item_text.replace('**', '')
+                    item_text = item_text.replace('*', '')
                     item_text = re.sub(r'\[([^\]]+)\]\(([^\)]+)\)', r'<a href="\2">\1</a>', item_text)
                     if product_name in item_text:
                         item_text = item_text.replace(product_name, f'<a href="{product_url}">{product_name}</a>')
@@ -1021,8 +1105,11 @@ Based on the keyword "{keyword}", the search intent appears to be:
                     else:
                         # 处理内联格式和链接
                         text = decode_unicode_escapes(line)
-                        # 粗体
-                        text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
+                        # 粗体：先处理成对的 **text**，使用非贪婪匹配，确保不匹配到中间有*的内容
+                        text = re.sub(r'\*\*([^*]+?)\*\*', r'<strong>\1</strong>', text)
+                        # 清理所有剩余的 ** 和单个 *（必须在替换后执行，确保未匹配的符号被移除）
+                        text = text.replace('**', '')
+                        text = text.replace('*', '')
                         # 链接 [text](url)
                         text = re.sub(r'\[([^\]]+)\]\(([^\)]+)\)', r'<a href="\2">\1</a>', text)
                         # 产品名链接
@@ -1072,13 +1159,59 @@ Based on the keyword "{keyword}", the search intent appears to be:
             image_list = [url for url in image_list if url]  # 移除空URL
             
             if image_list:
-                # 在正文内容之后插入图片（在内容转换完成后）
-                # 生成合适的alt文本
+                # 上传图片到WordPress媒体库并获取URL
                 alt_keyword = keyword if keyword else product_name
-                for idx, img_url in enumerate(image_list[:3], 1):  # 最多3张图片
-                    alt_text = f"{alt_keyword} - AI generated image {idx}" if alt_keyword else f"AI generated image {idx}"
-                    html_parts.append(f'<p style="text-align: center; margin: 30px 0;"><img src="{img_url}" alt="{alt_text}" style="max-width: 100%; height: auto; border-radius: 8px;" /></p>')
-                    html_parts.append('<p style="text-align: center; font-style: italic; color: #666; font-size: 0.9em; margin-top: -15px; margin-bottom: 30px;">AI Generated Image</p>')
+                output_dir = self._aw_ensure_output_dir()
+                
+                print(f"[WordPress Image Upload] Processing {len(image_list)} images...")
+                
+                for idx, img_path in enumerate(image_list, 1):  # 处理所有图片，不限制数量
+                    print(f"[WordPress Image Upload] Processing image {idx}/{len(image_list)}: {img_path}")
+                    # img_path 可能是相对路径（如 "images/filename.png"）
+                    if not img_path.startswith('http://') and not img_path.startswith('https://'):
+                        # 相对路径，构建完整路径
+                        # 处理不同的路径格式：可能是 "images/filename.png" 或完整路径
+                        if os.path.sep in img_path:
+                            # 已经是相对路径格式，直接拼接
+                            full_image_path = os.path.join(output_dir, img_path)
+                        else:
+                            # 只是文件名，需要加上images目录
+                            full_image_path = os.path.join(output_dir, "images", img_path)
+                        
+                        # 如果文件不存在，尝试其他可能的路径
+                        if not os.path.exists(full_image_path):
+                            # 尝试直接使用img_path作为完整路径
+                            if os.path.exists(img_path):
+                                full_image_path = img_path
+                            else:
+                                # 尝试在output目录下查找
+                                alt_path = os.path.join(output_dir, img_path)
+                                if os.path.exists(alt_path):
+                                    full_image_path = alt_path
+                        
+                        print(f"[WordPress Image Upload] Full path: {full_image_path}")
+                        print(f"[WordPress Image Upload] File exists: {os.path.exists(full_image_path)}")
+                        
+                        # 上传到WordPress
+                        alt_text = f"{alt_keyword} - AI generated image {idx}" if alt_keyword else f"AI generated image {idx}"
+                        wp_image_url = self._aw_upload_image_to_wordpress(full_image_path, alt_text)
+                        
+                        if wp_image_url:
+                            # 使用WordPress返回的URL插入图片
+                            print(f"[WordPress Image Upload] Success! Image {idx} uploaded: {wp_image_url}")
+                            html_parts.append(f'<p style="text-align: center; margin: 30px 0;"><img src="{wp_image_url}" alt="{alt_text}" style="max-width: 100%; height: auto; border-radius: 8px;" /></p>')
+                            html_parts.append('<p style="text-align: center; font-style: italic; color: #666; font-size: 0.9em; margin-top: -15px; margin-bottom: 30px;">AI Generated Image</p>')
+                        else:
+                            # 上传失败，添加注释说明
+                            print(f"[WordPress Image Upload] ❌ Failed to upload image {idx}: {img_path}")
+                            print(f"[WordPress Image Upload] Full path was: {full_image_path}")
+                            html_parts.append(f'<!-- Failed to upload image {idx}: {img_path} -->')
+                    else:
+                        # 已经是完整URL，直接使用
+                        print(f"[WordPress Image Upload] Image {idx} is already a full URL: {img_path}")
+                        alt_text = f"{alt_keyword} - AI generated image {idx}" if alt_keyword else f"AI generated image {idx}"
+                        html_parts.append(f'<p style="text-align: center; margin: 30px 0;"><img src="{img_path}" alt="{alt_text}" style="max-width: 100%; height: auto; border-radius: 8px;" /></p>')
+                        html_parts.append('<p style="text-align: center; font-style: italic; color: #666; font-size: 0.9em; margin-top: -15px; margin-bottom: 30px;">AI Generated Image</p>')
         
         # CTA
         html_parts.append('')
@@ -1188,6 +1321,192 @@ Based on the keyword "{keyword}", the search intent appears to be:
         
         hyperlink.append(new_run)
         paragraph._p.append(hyperlink)
+    
+    def _aw_upload_image_to_wordpress(self, image_path: str, alt_text: str = "") -> Optional[str]:
+        """上传图片到WordPress媒体库，返回图片URL"""
+        try:
+            token = self.valves.WP_ACCESS_TOKEN.strip()
+            site_id = self.valves.WP_SITE_ID.strip()
+            
+            if not token or not site_id:
+                print(f"[WordPress Upload] Missing credentials - token: {bool(token)}, site_id: {bool(site_id)}")
+                return None
+            
+            # 检查文件是否存在
+            if not os.path.exists(image_path):
+                print(f"[WordPress Upload] Image file not found: {image_path}")
+                return None
+            
+            # 构建API URL
+            api_base = self.valves.WP_API_BASE.rstrip('/')
+            url = f"{api_base}/sites/{site_id}/media/new"
+            
+            # 检测文件MIME类型
+            file_ext = os.path.splitext(image_path)[1].lower()
+            mime_type_map = {
+                '.png': 'image/png',
+                '.jpg': 'image/jpeg',
+                '.jpeg': 'image/jpeg',
+                '.gif': 'image/gif',
+                '.webp': 'image/webp'
+            }
+            mime_type = mime_type_map.get(file_ext, 'image/png')
+            filename = os.path.basename(image_path)
+            
+            print(f"[WordPress Upload] Uploading file: {filename}, mime_type: {mime_type}, size: {os.path.getsize(image_path)} bytes")
+            
+            # WordPress.com REST API v1.1 上传媒体需要使用 multipart/form-data
+            # 根据API文档，可以使用 media_urls[] 或直接上传文件
+            # 这里使用直接上传文件的方式
+            
+            with open(image_path, 'rb') as f:
+                # WordPress.com API v1.1 需要使用 'media[]' 字段名
+                files = {
+                    'media[]': (filename, f, mime_type)
+                }
+                
+                # 准备数据参数
+                # WordPress.com API 可能使用不同的参数格式
+                data = {}
+                if alt_text:
+                    # 尝试多种可能的格式
+                    data['attrs[alt]'] = alt_text
+                    data['alt_text'] = alt_text
+                
+                headers = {
+                    "Authorization": f"Bearer {token}",
+                    "User-Agent": "OpenWebUI-Article-Writer/2.0"
+                }
+                
+                print(f"[WordPress Upload] Sending POST request to: {url}")
+                print(f"[WordPress Upload] Headers (without token): {dict((k, '***' if 'Authorization' in k else v) for k, v in headers.items())}")
+                print(f"[WordPress Upload] Data: {data}")
+                
+                # 发送上传请求
+                response = requests.post(url, files=files, data=data, headers=headers, timeout=60, verify=False)
+                
+                print(f"[WordPress Upload] Response status code: {response.status_code}")
+                print(f"[WordPress Upload] Response headers: {dict(response.headers)}")
+                
+                if response.status_code == 200 or response.status_code == 201:
+                    try:
+                        result = response.json()
+                        print(f"[WordPress Upload] Response JSON keys: {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}")
+                        print(f"[WordPress Upload] Response JSON (first 500 chars): {str(result)[:500]}")
+                        
+                        # WordPress.com API 返回格式可能是：
+                        # 1. 直接是数组: [{...}]
+                        # 2. 包含 media 字段的对象: {"media": [{...}]}
+                        # 3. 直接是对象: {...}
+                        media_item = None
+                        if isinstance(result, list) and len(result) > 0:
+                            media_item = result[0]
+                        elif isinstance(result, dict):
+                            # 检查是否有嵌套的 media 字段
+                            if 'media' in result and isinstance(result['media'], list) and len(result['media']) > 0:
+                                media_item = result['media'][0]
+                            else:
+                                media_item = result
+                        else:
+                            print(f"[WordPress Upload] Unexpected response format: {type(result)}")
+                            return None
+                        
+                        # 获取图片URL - WordPress.com API返回的字段名是 URL
+                        image_url = (media_item.get('URL') or media_item.get('url') or 
+                                    media_item.get('source') or media_item.get('file') or
+                                    media_item.get('link') or media_item.get('href'))
+                        
+                        if image_url:
+                            print(f"[WordPress Upload] ✅ Successfully uploaded! Image URL: {image_url}")
+                            return image_url
+                        else:
+                            print(f"[WordPress Upload] ❌ No URL found in response. Available keys: {list(media.keys())}")
+                            print(f"[WordPress Upload] Full media object: {media}")
+                            return None
+                    except Exception as json_error:
+                        print(f"[WordPress Upload] JSON decode error: {str(json_error)}")
+                        print(f"[WordPress Upload] Response text (first 1000 chars): {response.text[:1000]}")
+                        return None
+                else:
+                    error_msg = response.text
+                    try:
+                        error_json = response.json()
+                        error_msg = error_json.get("message", error_json.get("error", error_json.get("code", error_msg)))
+                    except:
+                        pass
+                    print(f"[WordPress Upload] ❌ Failed! Status: {response.status_code}, Error: {error_msg}")
+                    print(f"[WordPress Upload] Response text (first 500 chars): {response.text[:500]}")
+                    return None
+                    
+        except Exception as e:
+            print(f"[WordPress Upload] Error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return None
+    
+    def _aw_insert_image_after_paragraph(self, doc, keyword: str, product_description: str, 
+                                         image_index: int, section_topic: str, 
+                                         generated_image_paths: list):
+        """在段落后插入图片（辅助函数，用于统一处理图片插入逻辑）"""
+        try:
+            print(f"[Image Insert Debug] Starting image generation for section: '{section_topic}' (index: {image_index})")
+            # 生成图片
+            local_image_path = self._aw_generate_image_with_dalle(
+                keyword, product_description, image_index, section_topic
+            )
+            print(f"[Image Insert Debug] Generated image path: {local_image_path}")
+            
+            if local_image_path:
+                # 构建完整图片路径
+                output_dir = self._aw_ensure_output_dir()
+                full_image_path = os.path.join(output_dir, local_image_path)
+                print(f"[Image Insert Debug] Full image path: {full_image_path}")
+                print(f"[Image Insert Debug] File exists: {os.path.exists(full_image_path)}")
+                
+                # 检查文件是否存在，如果不存在，尝试其他可能的路径（用于本地调试）
+                if not os.path.exists(full_image_path):
+                    # 尝试在output目录下查找（如果OUTPUT_PATH配置不正确）
+                    alternative_paths = [
+                        os.path.join(output_dir, "output", local_image_path),  # 如果OUTPUT_PATH指向父目录
+                        os.path.join(os.path.dirname(output_dir), local_image_path),  # 上一级目录
+                    ]
+                    for alt_path in alternative_paths:
+                        if os.path.exists(alt_path):
+                            full_image_path = alt_path
+                            print(f"[Image Insert Debug] Found image at alternative path: {full_image_path}")
+                            break
+                
+                # 检查文件是否存在
+                if os.path.exists(full_image_path):
+                    # 插入图片到Word文档
+                    doc.add_paragraph()  # 空行
+                    img_para = doc.add_paragraph()
+                    img_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    run = img_para.add_run()
+                    run.add_picture(full_image_path, width=Inches(5.5))
+                    # 记录生成的图片路径（用于WordPress发布）
+                    generated_image_paths.append(local_image_path)
+                    print(f"[Image Insert Success] Image inserted successfully: {full_image_path}")
+                else:
+                    # 文件不存在，打印错误信息
+                    print(f"[Image Insert Warning] Image file not found: {full_image_path}")
+                    print(f"[Image Insert Warning] Local path was: {local_image_path}")
+                    print(f"[Image Insert Warning] Output dir: {output_dir}")
+                    # 尝试列出images目录的内容以便调试
+                    images_dir = os.path.join(output_dir, "images")
+                    if os.path.exists(images_dir):
+                        try:
+                            files = os.listdir(images_dir)
+                            print(f"[Image Insert Warning] Files in images dir: {files[:10]}")  # 只显示前10个
+                        except Exception as list_error:
+                            print(f"[Image Insert Warning] Could not list images dir: {str(list_error)}")
+            else:
+                print(f"[Image Insert Warning] Image generation returned None for section: '{section_topic}'")
+        except Exception as e:
+            # 如果图片生成或插入失败，打印错误信息以便调试
+            print(f"[Image Insert Error] Failed to insert image for section '{section_topic}': {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     def write_complete_article(
         self,
@@ -1289,6 +1608,9 @@ Based on the keyword "{keyword}", the search intent appears to be:
             doc.add_paragraph()  # 空行
         
         # ===== 处理文章内容 =====
+        # 初始化图片路径列表（用于WordPress发布和收集生成的图片）
+        generated_image_paths = []
+        
         if article_content:
             # 清理HTML/Markdown标签并转换为Word格式
             content = article_content.strip()
@@ -1334,6 +1656,13 @@ Based on the keyword "{keyword}", the search intent appears to be:
             table_data = []
             table_headers = None
             
+            # 图片插入逻辑：跟踪当前主题和图片计数
+            current_section_topic = ""  # 当前H2标题
+            image_index = 1  # 图片索引
+            last_heading_was_h2 = False  # 上一个是否是H2标题
+            paragraphs_after_h2 = 0  # H2后的段落计数
+            # generated_image_paths 已在外部函数作用域定义，这里直接使用
+            
             for line in lines:
                 line = line.strip()
                 if not line:
@@ -1363,6 +1692,11 @@ Based on the keyword "{keyword}", the search intent appears to be:
                             table_headers = None
                     elif current_paragraph:
                         doc.add_paragraph()  # 空行
+                        # 图片插入逻辑：如果在等待插入图片，且已经有段落了，在空行前插入
+                        if last_heading_was_h2 and current_section_topic and paragraphs_after_h2 == 0:
+                            # 如果在H2标题后还没有插入图片，且遇到了空行（说明段落已结束）
+                            # 这种情况不应该插入，因为我们需要在第一个内容后插入
+                            pass
                     current_paragraph = None
                     continue
                 
@@ -1392,7 +1726,10 @@ Based on the keyword "{keyword}", the search intent appears to be:
                     in_table = False
                     table_data = []
                     table_headers = None
-                    doc.add_heading(h2_match.group(1), level=1)
+                    current_section_topic = h2_match.group(1)  # 记录当前主题
+                    doc.add_heading(current_section_topic, level=1)
+                    last_heading_was_h2 = True
+                    paragraphs_after_h2 = 0  # 重置段落计数
                     current_paragraph = None
                 elif h3_match:
                     # 如果在表格中，先结束表格
@@ -1413,6 +1750,7 @@ Based on the keyword "{keyword}", the search intent appears to be:
                     table_data = []
                     table_headers = None
                     doc.add_heading(h3_match.group(1), level=2)
+                    last_heading_was_h2 = False  # H3不是主要主题，不触发图片生成
                     current_paragraph = None
                 elif line.startswith('|') and '|' in line[1:]:
                     # 表格行处理
@@ -1434,10 +1772,32 @@ Based on the keyword "{keyword}", the search intent appears to be:
                     # 列表项
                     para = doc.add_paragraph(style='List Bullet')
                     para.add_run(decode_unicode_escapes(line[2:]))
+                    current_paragraph = para
+                    # 图片插入逻辑：在H2标题后的第一个内容后插入图片
+                    if last_heading_was_h2 and current_section_topic:
+                        paragraphs_after_h2 += 1
+                        if paragraphs_after_h2 == 1:  # 第一个内容后插入图片
+                            self._aw_insert_image_after_paragraph(
+                                doc, keyword, product_description, image_index, 
+                                current_section_topic, generated_image_paths
+                            )
+                            image_index += 1
+                            last_heading_was_h2 = False  # 重置标志
                 elif line.startswith('**') and line.endswith('**'):
                     # 粗体段落
                     para = doc.add_paragraph()
                     para.add_run(decode_unicode_escapes(line.replace('**', ''))).bold = True
+                    current_paragraph = para
+                    # 图片插入逻辑：在H2标题后的第一个内容后插入图片
+                    if last_heading_was_h2 and current_section_topic:
+                        paragraphs_after_h2 += 1
+                        if paragraphs_after_h2 == 1:  # 第一个内容后插入图片
+                            self._aw_insert_image_after_paragraph(
+                                doc, keyword, product_description, image_index, 
+                                current_section_topic, generated_image_paths
+                            )
+                            image_index += 1
+                            last_heading_was_h2 = False  # 重置标志
                 elif not in_table:
                     # 普通段落（不在表格中）
                     para = doc.add_paragraph()
@@ -1483,6 +1843,17 @@ Based on the keyword "{keyword}", the search intent appears to be:
                             para.add_run(text)
                     
                     current_paragraph = para
+                    
+                    # 图片插入逻辑：在H2标题后的第一个段落后插入图片
+                    if last_heading_was_h2 and current_section_topic:
+                        paragraphs_after_h2 += 1
+                        if paragraphs_after_h2 == 1:  # 第一个段落后插入图片
+                            self._aw_insert_image_after_paragraph(
+                                doc, keyword, product_description, image_index, 
+                                current_section_topic, generated_image_paths
+                            )
+                            image_index += 1
+                            last_heading_was_h2 = False  # 重置标志
             
             # 如果内容结束时还在表格中，结束表格
             if in_table and table_data:
@@ -1509,27 +1880,17 @@ Based on the keyword "{keyword}", the search intent appears to be:
             doc.add_paragraph("")
             doc.add_paragraph("请不要在未生成文章内容的情况下调用此工具。")
         
-        # ===== 生成AI图片URL（SEO友好）=====
-        # 不再爬取URL图片，而是生成SEO友好的AI图片URL
+        # ===== 图片处理（已在上面的内容处理中动态插入）=====
+        # 图片已经在处理内容时根据H2标题动态插入到段落之间
+        # 这里收集图片路径用于WordPress发布
         all_image_urls = []
         
         # 如果提供了图片URL列表，使用它们
         if image_urls:
             all_image_urls.extend([url.strip() for url in image_urls.split(',') if url.strip()])
-        else:
-            # 生成2-3张AI图片URL（在文章中合适的位置插入）
-            num_images = min(3, max(2, word_count // 800))  # 根据字数决定图片数量
-            for i in range(1, num_images + 1):
-                img_url = self._aw_generate_seo_image_url(keyword, image_index=i, base_domain=product_url)
-                all_image_urls.append(img_url)
-        
-        # 在Word文档中添加图片占位符说明（实际图片会在HTML转换时插入）
-        if all_image_urls:
-            doc.add_paragraph()  # 空行
-            para = doc.add_paragraph()
-            para.add_run('Images (AI Generated, SEO-friendly URLs):').bold = True
-            for idx, img_url in enumerate(all_image_urls, 1):
-                doc.add_paragraph(f'  Image {idx}: {img_url}', style='List Bullet')
+        elif generated_image_paths:
+            # 使用动态生成的图片路径
+            all_image_urls = generated_image_paths
         
         # ===== 产品推荐CTA =====
         doc.add_paragraph()  # 空行

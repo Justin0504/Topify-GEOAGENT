@@ -61,3 +61,4 @@ echo ""
 echo "📋 查看日志: docker logs -f open-webui"
 echo "🛑 停止容器: docker stop open-webui"
 
+

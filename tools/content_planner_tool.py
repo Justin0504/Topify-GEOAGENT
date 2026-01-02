@@ -676,6 +676,48 @@ class Tools:
         
         wb.save(filepath)
         
+        # ===== 收集文章数据用于自动导入 Calendar =====
+        import json
+        articles_data = []
+        for row in ws_main.iter_rows(min_row=2, max_row=actual_articles + 1, values_only=True):
+            article_id = row[0]  # 编号
+            article_type = row[1]  # 文章类型
+            publish_date_str = row[2]  # 发布日期 (YYYY-MM-DD)
+            week = row[3]  # 发布周
+            title = row[4]  # 文章标题
+            keyword = row[5]  # 目标关键词
+            intent = row[6]  # 搜索意图
+            url = row[7]  # SEO友好URL
+            status = row[12] if len(row) > 12 else "待写"  # 状态
+            
+            # 判断是否完成
+            completed = status and any(word in str(status) for word in ['已完成', '完成', 'Completed', 'Done', '已发布', 'Published'])
+            
+            articles_data.append({
+                "id": str(article_id) if article_id else f"article-{len(articles_data)+1}",
+                "title": str(title) if title else "",
+                "publish_date": str(publish_date_str) if publish_date_str else "",
+                "completed": completed,
+                "keyword": str(keyword) if keyword else "",
+                "type": str(article_type) if article_type else ""
+            })
+        
+        # 生成 JSON 数据（用于自动导入 Calendar）
+        calendar_import_data = {
+            "source": "content_plan",
+            "domain": domain,
+            "product_name": product_name,
+            "plan_start_date": plan_start_date.strftime("%Y-%m-%d"),
+            "total_articles": actual_articles,
+            "articles": articles_data,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # 将 JSON 数据编码为 base64，嵌入到返回消息中
+        import base64
+        json_str = json.dumps(calendar_import_data, ensure_ascii=False)
+        json_b64 = base64.b64encode(json_str.encode('utf-8')).decode('utf-8')
+        
         return f"""
 📊 **Pillar-Based 内容规划完成**
 
@@ -713,6 +755,8 @@ class Tools:
 - 搜索意图已自动分析（Informational/Commercial/Transactional）
 - 支柱文章优先在前4周发布
 - 支撑文章按周均匀分布
+
+<!-- CALENDAR_IMPORT_DATA:{json_b64} -->
 """
 
     def geo_optimization_plan(

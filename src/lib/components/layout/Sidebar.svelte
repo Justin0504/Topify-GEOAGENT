@@ -3,6 +3,7 @@
 	import { v4 as uuidv4 } from 'uuid';
 
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import {
 		user,
 		chats,
@@ -62,6 +63,14 @@
 	import Sidebar from '../icons/Sidebar.svelte';
 	import PinnedModelList from './Sidebar/PinnedModelList.svelte';
 	import Note from '../icons/Note.svelte';
+	import Bolt from '../icons/Bolt.svelte';
+	import ChartBar from '../icons/ChartBar.svelte';
+	import Calendar from '../icons/Calendar.svelte';
+	import BookOpen from '../icons/BookOpen.svelte';
+	import Link from '../icons/Link.svelte';
+	import DocumentChartBar from '../icons/DocumentChartBar.svelte';
+	import Hashtag from '../icons/Hashtag.svelte';
+	import Users from '../icons/Users.svelte';
 	import { slide } from 'svelte/transition';
 	import HotkeyHint from '../common/HotkeyHint.svelte';
 	import { key } from 'vega';
@@ -87,6 +96,8 @@
 	let showPinnedModels = false;
 	let showChannels = false;
 	let showFolders = false;
+	let showAction = false;
+	let showAnalytics = false;
 
 	let folders = {};
 	let folderRegistry = {};
@@ -785,6 +796,50 @@
 						</Tooltip>
 					</div>
 				{/if}
+
+				<div class="">
+					<Tooltip content="Action" placement="right">
+						<a
+							class=" cursor-pointer flex rounded-xl hover:bg-gray-100 dark:hover:bg-gray-850 transition group"
+							href="/action"
+							on:click={async (e) => {
+								e.stopImmediatePropagation();
+								e.preventDefault();
+
+								goto('/action');
+								itemClickHandler();
+							}}
+							aria-label="Action"
+							draggable="false"
+						>
+							<div class=" self-center flex items-center justify-center size-9">
+								<Bolt className="size-4.5" />
+							</div>
+						</a>
+					</Tooltip>
+				</div>
+
+				<div class="">
+					<Tooltip content="Analytics" placement="right">
+						<a
+							class=" cursor-pointer flex rounded-xl hover:bg-gray-100 dark:hover:bg-gray-850 transition group"
+							href="/analytics"
+							on:click={async (e) => {
+								e.stopImmediatePropagation();
+								e.preventDefault();
+
+								goto('/analytics');
+								itemClickHandler();
+							}}
+							aria-label="Analytics"
+							draggable="false"
+						>
+							<div class=" self-center flex items-center justify-center size-9">
+								<ChartBar className="size-4.5" />
+							</div>
+						</a>
+					</Tooltip>
+				</div>
 			</div>
 		</button>
 
@@ -867,7 +922,7 @@
 				>
 					<img
 						crossorigin="anonymous"
-						src="{WEBUI_BASE_URL}/static/favicon.png?v=3"
+						src="{WEBUI_BASE_URL}/static/favicon.png?v={Date.now()}"
 						class="sidebar-new-chat-icon size-6 rounded-full"
 						alt=""
 					/>
@@ -1014,7 +1069,116 @@
 							</a>
 						</div>
 					{/if}
+
 				</div>
+
+				<Folder
+					id="sidebar-action"
+					bind:open={showAction}
+					className="px-2 mt-0.5"
+					name="Action"
+					chevron={false}
+					dragAndDrop={false}
+				>
+					<div class="ml-3 pl-1 mt-[1px] flex flex-col border-s border-gray-100 dark:border-gray-900">
+						<a
+							href="/action/calendar"
+							class="w-full flex items-center gap-1.5 rounded-xl px-1 py-[3px] hover:bg-gray-100 dark:hover:bg-gray-900 {$page.url.pathname === '/action/calendar' ? 'bg-gray-100 dark:bg-gray-900' : ''} text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition"
+							on:click={() => {
+								if ($mobile) {
+									showSidebar.set(false);
+								}
+							}}
+						>
+							<Calendar className="size-3.5 ml-1" strokeWidth="2" />
+							<span class="text-xs">Calendar</span>
+						</a>
+						<a
+							href="/action/blog-center"
+							class="w-full flex items-center gap-1.5 rounded-xl px-1 py-[3px] hover:bg-gray-100 dark:hover:bg-gray-900 {$page.url.pathname === '/action/blog-center' ? 'bg-gray-100 dark:bg-gray-900' : ''} text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition"
+							on:click={() => {
+								if ($mobile) {
+									showSidebar.set(false);
+								}
+							}}
+						>
+							<BookOpen className="size-3.5 ml-1" strokeWidth="2" />
+							<span class="text-xs">Blog center</span>
+						</a>
+						<a
+							href="/action/reach-out"
+							class="w-full flex items-center gap-1.5 rounded-xl px-1 py-[3px] hover:bg-gray-100 dark:hover:bg-gray-900 {$page.url.pathname === '/action/reach-out' ? 'bg-gray-100 dark:bg-gray-900' : ''} text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition"
+							on:click={() => {
+								if ($mobile) {
+									showSidebar.set(false);
+								}
+							}}
+						>
+							<Link className="size-3.5 ml-1" strokeWidth="2" />
+							<span class="text-xs">Reach Out</span>
+						</a>
+					</div>
+				</Folder>
+
+				<Folder
+					id="sidebar-analytics"
+					bind:open={showAnalytics}
+					className="px-2 mt-0.5"
+					name="Analytics"
+					chevron={false}
+					dragAndDrop={false}
+				>
+					<div class="ml-3 pl-1 mt-[1px] flex flex-col border-s border-gray-100 dark:border-gray-900">
+						<a
+							href="/analytics/dashboard"
+							class="w-full flex items-center gap-1.5 rounded-xl px-1 py-[3px] hover:bg-gray-100 dark:hover:bg-gray-900 {$page.url.pathname === '/analytics/dashboard' ? 'bg-gray-100 dark:bg-gray-900' : ''} text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition"
+							on:click={() => {
+								if ($mobile) {
+									showSidebar.set(false);
+								}
+							}}
+						>
+							<DocumentChartBar className="size-3.5 ml-1" strokeWidth="2" />
+							<span class="text-xs">Dashboard</span>
+						</a>
+						<a
+							href="/analytics/prompt-research"
+							class="w-full flex items-center gap-1.5 rounded-xl px-1 py-[3px] hover:bg-gray-100 dark:hover:bg-gray-900 {$page.url.pathname === '/analytics/prompt-research' ? 'bg-gray-100 dark:bg-gray-900' : ''} text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition"
+							on:click={() => {
+								if ($mobile) {
+									showSidebar.set(false);
+								}
+							}}
+						>
+							<Search className="size-3.5 ml-1" strokeWidth="2" />
+							<span class="text-xs">Prompt Research</span>
+						</a>
+						<a
+							href="/analytics/topic"
+							class="w-full flex items-center gap-1.5 rounded-xl px-1 py-[3px] hover:bg-gray-100 dark:hover:bg-gray-900 {$page.url.pathname === '/analytics/topic' ? 'bg-gray-100 dark:bg-gray-900' : ''} text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition"
+							on:click={() => {
+								if ($mobile) {
+									showSidebar.set(false);
+								}
+							}}
+						>
+							<Hashtag className="size-3.5 ml-1" strokeWidth="2" />
+							<span class="text-xs">Topic</span>
+						</a>
+						<a
+							href="/analytics/competitor"
+							class="w-full flex items-center gap-1.5 rounded-xl px-1 py-[3px] hover:bg-gray-100 dark:hover:bg-gray-900 {$page.url.pathname === '/analytics/competitor' ? 'bg-gray-100 dark:bg-gray-900' : ''} text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition"
+							on:click={() => {
+								if ($mobile) {
+									showSidebar.set(false);
+								}
+							}}
+						>
+							<Users className="size-3.5 ml-1" strokeWidth="2" />
+							<span class="text-xs">Competitor</span>
+						</a>
+					</div>
+				</Folder>
 
 				{#if ($models ?? []).length > 0 && (($settings?.pinnedModels ?? []).length > 0 || $config?.default_pinned_models)}
 					<Folder

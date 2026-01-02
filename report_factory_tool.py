@@ -365,3 +365,4 @@ class Tools:
                 "error": f"Unsupported format: {format}. Supported formats: docx, xlsx, pdf"
             }
 
+

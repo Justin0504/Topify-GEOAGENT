@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Calendar Import Test</title>
+</head>
+<body>
+    <h1>Calendar Import Test</h1>
+    <div id="result"></div>
+    <script>
+        // Test regex
+        const testContent = `📊 **Pillar-Based 内容规划完成**
+        
+路径: /Users/justin/Downloads/open-webui-main/output/content_plan_topify_ai_20251231_155726.xlsx
+
+<!-- CALENDAR_IMPORT_DATA:eyJzb3VyY2UiOiJjb250ZW50X3BsYW4iLCJhcnRpY2xlcyI6W3siaWQiOiJQMDEiLCJ0aXRsZSI6IlRlc3QgQXJ0aWNsZSIsInB1Ymxpc2hfZGF0ZSI6IjIwMjUtMDEtMDEiLCJjb21wbGV0ZWQiOmZhbHNlfV19 -->`;
+
+        const regex = /<!--\s*CALENDAR_IMPORT_DATA:([A-Za-z0-9+/=]+)\s*-->/;
+        const match = testContent.match(regex);
+        
+        const resultDiv = document.getElementById('result');
+        if (match && match[1]) {
+            try {
+                const jsonStr = atob(match[1]);
+                const data = JSON.parse(jsonStr);
+                resultDiv.innerHTML = '<p style="color: green;">✅ 标记检测成功！</p>' +
+                    '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (e) {
+                resultDiv.innerHTML = '<p style="color: red;">❌ Base64 解码失败: ' + e.message + '</p>';
+            }
+        } else {
+            resultDiv.innerHTML = '<p style="color: red;">❌ 未找到标记</p><pre>' + testContent + '</pre>';
+        }
+    </script>
+</body>
+</html>

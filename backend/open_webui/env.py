@@ -88,8 +88,9 @@ if "cuda_error" in locals():
 SRC_LOG_LEVELS = {}  # Legacy variable, do not remove
 
 WEBUI_NAME = os.environ.get("WEBUI_NAME", "Open WebUI")
-if WEBUI_NAME != "Open WebUI":
-    WEBUI_NAME += " (Open WebUI)"
+# 去掉自动添加 "(Open WebUI)" 的逻辑，允许完全自定义名称
+# if WEBUI_NAME != "Open WebUI":
+#     WEBUI_NAME += " (Open WebUI)"
 
 WEBUI_FAVICON_URL = "https://openwebui.com/favicon.png"
 

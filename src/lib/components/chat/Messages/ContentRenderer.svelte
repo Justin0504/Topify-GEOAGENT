@@ -18,6 +18,69 @@
 
 	export let id;
 	export let content;
+	
+	// Extract calendar import data when content changes
+	$: if (content) {
+		extractCalendarImportData(content);
+	}
+	
+	// Also check when done becomes true (message completed) - important for tool results
+	$: if (done && content && content !== lastCheckedContent) {
+		lastCheckedContent = content;
+		// Small delay to ensure content is fully rendered
+		setTimeout(() => {
+			extractCalendarImportData(content);
+		}, 500);
+	}
+	
+	// Extract calendar import data from content
+	const extractCalendarImportData = (content) => {
+		if (!content || typeof content !== 'string') return;
+		
+		try {
+			// Look for <!-- CALENDAR_IMPORT_DATA:... --> marker (support escaped format)
+			const patterns = [
+				/<!--\s*CALENDAR_IMPORT_DATA:([A-Za-z0-9+/=]+)\s*-->/,
+				/&lt;!--\s*CALENDAR_IMPORT_DATA:([A-Za-z0-9+/=]+)\s*--&gt;/
+			];
+			
+			let match = null;
+			for (const regex of patterns) {
+				match = content.match(regex);
+				if (match && match[1]) break;
+			}
+			
+			if (match && match[1]) {
+				try {
+					// Decode base64
+					const jsonStr = atob(match[1]);
+					const data = JSON.parse(jsonStr);
+					
+					// Save to localStorage
+					if (data && data.articles && Array.isArray(data.articles)) {
+						localStorage.setItem('calendar_pending_import', JSON.stringify(data));
+						console.log('✅ [ContentRenderer] Calendar 导入数据已保存到 localStorage', data);
+						console.log(`📊 [ContentRenderer] 共 ${data.articles.length} 篇文章待导入`);
+						
+						// Trigger custom event to notify Calendar page
+						window.dispatchEvent(new CustomEvent('calendar-import-ready', { detail: data }));
+					}
+				} catch (error) {
+					console.error('解析 Calendar 导入数据失败:', error);
+					console.error('Base64 字符串:', match[1].substring(0, 50) + '...');
+				}
+			} else {
+				// Debug: check if the content contains the marker at all
+				if (content.includes('CALENDAR_IMPORT_DATA')) {
+					console.warn('⚠️ [ContentRenderer] 检测到 CALENDAR_IMPORT_DATA 标记，但正则表达式未匹配');
+					const idx = content.indexOf('CALENDAR_IMPORT_DATA');
+					console.log('内容片段:', content.substring(Math.max(0, idx - 50), Math.min(content.length, idx + 200)));
+				}
+			}
+		} catch (error) {
+			console.error('提取 Calendar 导入数据失败:', error);
+		}
+	};
 
 	export let history;
 	export let messageId;
@@ -42,6 +105,7 @@
 
 	let contentContainerElement;
 	let floatingButtonsElement;
+	let lastCheckedContent = '';
 
 	const updateButtonPosition = (event) => {
 		const buttonsContainerElement = document.getElementById(`floating-buttons-${id}`);

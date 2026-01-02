@@ -310,3 +310,14 @@ dist
 cypress/videos
 cypress/screenshots
 .vscode/settings.json
+
+# Local ML models (llama, sentence transformers, etc.)
+/models/
+models/
+
+# Generated output files (docx, xlsx, reports)
+/output/
+output/
+
+# Temporary Office lock files
+~$*
